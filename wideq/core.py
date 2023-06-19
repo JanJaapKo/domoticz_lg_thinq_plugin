@@ -516,6 +516,16 @@ class Session(object):
             language=self.auth.gateway.language,
         )
 
+    def get_devicesnew(self) -> List[Dict[str, Any]]:
+        """Get a list of devices associated with the user's account.
+
+        Return a list of dicts with information about the devices.
+        """
+        my_list = self.get("devices")
+
+        return get_list(my_list, "item")
+        return get_list(self.get("devices"), "item")
+
     def get_devices(self) -> List[Dict[str, Any]]:
         """Get a list of devices associated with the user's account.
 

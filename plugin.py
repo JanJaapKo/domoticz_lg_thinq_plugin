@@ -5,7 +5,7 @@
 # Author: majki
 #
 """
-<plugin key="LG_ThinQ" name="LG ThinQ" author="majki" version="2.1.4" externallink="https://github.com/majki09/domoticz_lg_thinq_plugin">
+<plugin key="LG_ThinQ" name="LG ThinQ" author="majki" version="2.2.0" externallink="https://github.com/majki09/domoticz_lg_thinq_plugin">
     <description>
         <h2>LG ThinQ domoticz plugin</h2><br/>
         Plugin uses LG API v2. All API interface (with some mods) comes from <a href="https://github.com/no2chem/wideq"> github.com/no2chem/wideq</a>.<br/><br/>
@@ -24,6 +24,10 @@
         <ul style="list-style-type:square">
             <li>LG therma V 7kW HN0916M NK4</li>
         </ul>
+        <h4>Washing machine</h4>
+        <ul style="list-style-type:square">
+            <li>LG don't know</li>
+        </ul>
         <br/>
     </description>
     <params>
@@ -39,6 +43,7 @@
             <options>
                 <option label="Air Conditioning (AC)" value="type_ac" default="true" />
                 <option label="Air to Water Heat Pump (AWHP)" value="type_awhp" default="false" />
+                <option label="Washing machine" value="type_washer" default="false" />
             </options>
         </param>
         <param field="Mode2" label="Device ID" width="270px"/>
@@ -172,6 +177,24 @@ class BasePlugin:
                 Domoticz.Device(Name="Output water temp", Unit=6, TypeName="Temperature", Used=1).Create()
                 
                 Domoticz.Log("LG ThinQ AWHP device created.") 
+        # washer part
+        elif self.DEVICE_TYPE == "type_washer":
+            Domoticz.Log("Getting washer status successful.")
+            if len(Devices) == 0:
+                Options = {"LevelActions" : "||||",
+                           "LevelNames" : "|Start|Stop|Power Off|Wake up",
+                           "LevelOffHidden" : "true",
+                           "SelectorStyle" : "0"}
+                Domoticz.Device(Name="Operation Mode", Unit=1, TypeName="Selector Switch", Image=16, Options=Options, Used=1).Create()
+                
+                Options = {"LevelActions" : "||||||||||||||||",
+                           "LevelNames" : "|RINSING|END|REFRESHING|COOL_DOWN|RINSE_HOLD|DETECTING|POWER_OFF|SLEEP|SPINNING|ERROR|RESERVED|PAUSE|RUNNING|INITIAL|STEAM_SOFTENING|DRYING",
+                           "LevelOffHidden" : "true",
+                           "SelectorStyle" : "1"}
+                           
+                Domoticz.Device(Name="Mode", Unit=2, TypeName="Selector Switch", Image=16, Options=Options, Used=1).Create()
+                
+                Domoticz.Log("LG ThinQ washer device created.") 
         else:
             Domoticz.Error("Getting LG device status failed.")
 
