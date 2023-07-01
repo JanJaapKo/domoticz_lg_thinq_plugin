@@ -1,4 +1,5 @@
 import enum
+import logging
 from typing import Optional
 
 from .client import Device

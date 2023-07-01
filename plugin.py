@@ -56,7 +56,7 @@ import json
 import os.path
 from threading import Thread
 import wideq
-
+import logging
 
 class BasePlugin:
     enabled = False
@@ -99,7 +99,12 @@ class BasePlugin:
 
         if self.DEBUG == "Debug":
             Domoticz.Debugging(1)
+            logging.basicConfig(format='%(asctime)s - %(levelname)-8s - %(filename)-18s - %(message)s', filename='lg.log',level=logging.DEBUG)
+        else:
+            Domoticz.Debugging(0)
+            logging.basicConfig(format='%(asctime)s - %(levelname)-8s - %(filename)-18s - %(message)s', filename='lg.log',level=logging.INFO)
 
+        logging.info("starting plugin version "+Parameters["Version"])
         self.wideq_object = WideQ(country=self.COUNTRY,
                                   language=self.LANGUAGE)
 
@@ -114,6 +119,7 @@ class BasePlugin:
 
         except UserWarning:
             Domoticz.Error("Device not found on your LG account. Check your device ID.")
+            logging.error("Device not found on your LG account. Check your device ID.")
 
         if self.lg_device is None:
             return False
@@ -121,6 +127,7 @@ class BasePlugin:
         # AC part
         if self.DEVICE_TYPE == "type_ac":
             Domoticz.Log("Getting AC status successful.")
+            logging.info("Getting AC status successful.")
             if len(Devices) == 0:
                 Domoticz.Device(Name="Operation", Unit=1, Image=16, TypeName="Switch", Used=1).Create()
                 
@@ -158,10 +165,12 @@ class BasePlugin:
                 # Domoticz.Device(Name="Power", Unit=8, TypeName="kWh", Used=1).Create()
                 
                 Domoticz.Log("LG ThinQ AC device created.")
+                logging.info("LG ThinQ AC device created.")
                 
         # AWHP part
         elif self.DEVICE_TYPE == "type_awhp":
             Domoticz.Log("Getting AWHP status successful.")
+            logging.info("Getting AWHP status successful.")
             if len(Devices) == 0:
                 Domoticz.Device(Name="Operation", Unit=1, Image=16, TypeName="Switch", Used=1).Create()
                 
@@ -177,9 +186,11 @@ class BasePlugin:
                 Domoticz.Device(Name="Output water temp", Unit=6, TypeName="Temperature", Used=1).Create()
                 
                 Domoticz.Log("LG ThinQ AWHP device created.") 
+                logging.info("LG ThinQ AWHP device created.") 
         # washer part
         elif self.DEVICE_TYPE == "type_washer":
             Domoticz.Log("Getting washer status successful.")
+            logging.info("Getting washer status successful.")
             if len(Devices) == 0:
                 Options = {"LevelActions" : "||||",
                            "LevelNames" : "|Start|Stop|Power Off|Wake up",
@@ -187,21 +198,24 @@ class BasePlugin:
                            "SelectorStyle" : "0"}
                 Domoticz.Device(Name="Operation Mode", Unit=1, TypeName="Selector Switch", Image=16, Options=Options, Used=1).Create()
                 
-                Options = {"LevelActions" : "||||||||||||||||",
+                Options_mode = {"LevelActions" : "||||||||||||||||",
                            "LevelNames" : "|RINSING|END|REFRESHING|COOL_DOWN|RINSE_HOLD|DETECTING|POWER_OFF|SLEEP|SPINNING|ERROR|RESERVED|PAUSE|RUNNING|INITIAL|STEAM_SOFTENING|DRYING",
                            "LevelOffHidden" : "true",
                            "SelectorStyle" : "1"}
                            
-                Domoticz.Device(Name="Mode", Unit=2, TypeName="Selector Switch", Image=16, Options=Options, Used=1).Create()
+                Domoticz.Device(Name="Mode", Unit=2, TypeName="Selector Switch", Image=16, Options=Options_mode, Used=1).Create()
                 
                 Domoticz.Log("LG ThinQ washer device created.") 
+                logging.info("LG ThinQ washer device created.") 
         else:
             Domoticz.Error("Getting LG device status failed.")
+            logging.error("Getting LG device status failed.")
 
         DumpConfigToLog()
 
     def onStop(self):
         Domoticz.Log("onStop called")
+        logging.info("stopping plugin")
         
     def onConnect(self, Connection, Status, Description):
         pass
@@ -214,6 +228,7 @@ class BasePlugin:
             
     def onCommand(self, Unit, Command, Level, Hue):
         # Domoticz.Debug("Command received U="+str(Unit)+" C="+str(Command)+" L= "+str(Level)+" H= "+str(Hue))
+        # logging.debug("Command received U="+str(Unit)+" C="+str(Command)+" L= "+str(Level)+" H= "+str(Hue))
         # import web_pdb; web_pdb.set_trace()
         
         # AC part
@@ -252,6 +267,7 @@ class BasePlugin:
                 if Devices[3].nValue != self.operation or Devices[3].sValue != Level:
                     self.lg_device.set_celsius(int(Level))
                     Domoticz.Log("new Setpoint: " + str(Level))
+                    logging.info("new Setpoint: " + str(Level))
                     Devices[3].Update(nValue = self.operation, sValue = str(Level))
                     
             if Unit == 5: # Fan speed
@@ -340,6 +356,7 @@ class BasePlugin:
                 if Devices[3].nValue != self.operation or Devices[3].sValue != Level:
                     self.lg_device.set_celsius(int(Level))
                     Domoticz.Log("new Target temp: " + str(Level))
+                    logging.info("new Target temp: " + str(Level))
                     Devices[3].Update(nValue = self.operation, sValue = str(Level))
                     
             if Unit == 4: # Hot water temp
@@ -350,10 +367,12 @@ class BasePlugin:
         
     def onDisconnect(self, Connection):
         Domoticz.Log("onDisconnect called")
+        logging.info("onDisconnect called")
 
     # every 10 seconds
     def onHeartbeat(self):
         # Domoticz.Log("onHeartbeat called: "+str(self.heartbeat_counter))
+        # logging.info("onHeartbeat called: "+str(self.heartbeat_counter))
         if self.heartbeat_counter == 0:
             # Domoticz.Log("onHeartbeat %6 called: "+str(self.heartbeat_counter))
             # import web_pdb; web_pdb.set_trace()
@@ -418,10 +437,12 @@ class BasePlugin:
                 if Devices[1].nValue != 0:
                     Devices[1].Update(nValue = 0, sValue ="0") 
                     Domoticz.Log("operation received! Current: " + str(self.operation))
+                    logging.info("operation received! Current: " + str(self.operation))
             else:
                 if Devices[1].nValue != 1:
                     Devices[1].Update(nValue = 1, sValue ="100")
                     Domoticz.Log("operation received! Current: " + str(self.operation))
+                    logging.info("operation received! Current: " + str(self.operation))
                 
             # Mode (opMode)
             if self.op_mode == "ACO":
@@ -443,16 +464,19 @@ class BasePlugin:
             if Devices[2].nValue != self.operation or Devices[2].sValue != sValueNew:
                 Devices[2].Update(nValue = self.operation, sValue = sValueNew, Image = newImage)
                 Domoticz.Log("Mode received! Current: " + self.op_mode)
+                logging.info("Mode received! Current: " + self.op_mode)
                 
             # Target temp (tempState.target)
             if Devices[3].nValue != self.operation or Devices[3].sValue != self.target_temp:
                 Devices[3].Update(nValue = self.operation, sValue = self.target_temp)
                 Domoticz.Log("tempState.target received! Current: " + self.target_temp)
+                logging.info("tempState.target received! Current: " + self.target_temp)
                     
             # Room temp (tempState.current)
             if Devices[4].sValue != self.room_temp:
                 Devices[4].Update(nValue = 0, sValue = self.room_temp)
                 Domoticz.Log("tempState.current received! Current: " + self.room_temp)
+                logging.info("tempState.current received! Current: " + self.room_temp)
             # else:
                 # Domoticz.Log("Devices[4].sValue=" + Devices[4].sValue)
                 # Domoticz.Log("room_temp=" + self.room_temp)
@@ -474,6 +498,7 @@ class BasePlugin:
             if Devices[5].nValue != self.operation or Devices[5].sValue != sValueNew:
                 Devices[5].Update(nValue = self.operation, sValue = sValueNew)
                 Domoticz.Log("windStrength received! Current: " + self.wind_strength)
+                logging.info("windStrength received! Current: " + self.wind_strength)
                 
             # Swing Horizontal (hStep)
             if self.h_step == "ALL":
@@ -498,6 +523,7 @@ class BasePlugin:
             if Devices[6].nValue != self.operation or Devices[6].sValue != sValueNew:
                 Devices[6].Update(nValue = self.operation, sValue = sValueNew)
                 Domoticz.Log("hStep received! Current: " + self.h_step)
+                logging.info("hStep received! Current: " + self.h_step)
                 
             # Swing Vertival (vStep)
             if self.v_step == "ALL":
@@ -520,6 +546,7 @@ class BasePlugin:
             if Devices[7].nValue != self.operation or Devices[7].sValue != sValueNew:
                 Devices[7].Update(nValue = self.operation, sValue = sValueNew)
                 Domoticz.Log("vStep received! Current: " + self.v_step)
+                logging.info("vStep received! Current: " + self.v_step)
                 
             # Current Power (energy.onCurrent)
             # if (Devices[8].sValue != (str(self.power) + ";0")):
@@ -533,11 +560,13 @@ class BasePlugin:
             if self.operation == 0:
                 if Devices[1].nValue != 0:
                     Devices[1].Update(nValue = 0, sValue ="0") 
-                    Domoticz.Log("operation received! Current: " + str(self.operation))
+                    Domoticz.Debug("operation received! Current: " + str(self.operation))
+                    logging.debug("operation received! Current: " + str(self.operation))
             else:
                 if Devices[1].nValue != 1:
                     Devices[1].Update(nValue = 1, sValue ="100")
-                    Domoticz.Log("operation received! Current: " + str(self.operation))
+                    Domoticz.Debug("operation received! Current: " + str(self.operation))
+                    logging.debug("operation received! Current: " + str(self.operation))
                 
             # Mode (opMode)
             if self.op_mode == "COOL":
@@ -552,27 +581,32 @@ class BasePlugin:
                 
             if Devices[2].nValue != self.operation or Devices[2].sValue != sValueNew:
                 Devices[2].Update(nValue = self.operation, sValue = sValueNew, Image = newImage)
-                Domoticz.Log("Mode received! Current: " + self.op_mode)
+                Domoticz.Debug("Mode received! Current: " + self.op_mode)
+                logging.debug("Mode received! Current: " + self.op_mode)
                 
             # Target temp (tempState.target)
             if Devices[3].nValue != self.operation or Devices[3].sValue != self.target_temp:
                 Devices[3].Update(nValue = self.operation, sValue = self.target_temp)
-                Domoticz.Log("tempState.target received! Current: " + self.target_temp)
+                Domoticz.Debug("tempState.target received! Current: " + self.target_temp)
+                logging.debug("tempState.target received! Current: " + self.target_temp)
                 
             # Hot water temp (airState.tempState.hotWaterCurrent)
             if Devices[4].nValue != self.operation or Devices[4].sValue != self.hot_water_temp:
                 Devices[4].Update(nValue = self.operation, sValue = self.hot_water_temp)
-                Domoticz.Log("airState.tempState.hotWaterCurrent received! Current: " + self.hot_water_temp)
+                Domoticz.Debug("airState.tempState.hotWaterCurrent received! Current: " + self.hot_water_temp)
+                logging.debug("airState.tempState.hotWaterCurrent received! Current: " + self.hot_water_temp)
                 
             # Input water temp (tempState.inWaterCurrent)
             if Devices[5].nValue != self.operation or Devices[5].sValue != self.in_water_temp:
                 Devices[5].Update(nValue = self.operation, sValue = self.in_water_temp)
-                Domoticz.Log("tempState.inWaterCurrent received! Current: " + self.in_water_temp)
+                Domoticz.Debug("tempState.inWaterCurrent received! Current: " + self.in_water_temp)
+                logging.debug("tempState.inWaterCurrent received! Current: " + self.in_water_temp)
                 
             # Output water temp (tempState.outWaterCurrent)
             if Devices[6].nValue != self.operation or Devices[6].sValue != self.out_water_temp:
                 Devices[6].Update(nValue = self.operation, sValue = self.out_water_temp)
-                Domoticz.Log("tempState.outWaterCurrent received! Current: " + self.out_water_temp)
+                Domoticz.Debug("tempState.outWaterCurrent received! Current: " + self.out_water_temp)
+                logging.debug("tempState.outWaterCurrent received! Current: " + self.out_water_temp)
 
 global _plugin
 _plugin = BasePlugin()
@@ -696,6 +730,7 @@ class WideQ:
                 with open(loc_to_try, 'r'):
                     state_file = loc_to_try
                     Domoticz.Log("wideq_state file found in Synology NAS location.")
+                    logging.info("wideq_state file found in Synology NAS location.")
             except IOError:
                 # docker location
                 try:
@@ -703,14 +738,17 @@ class WideQ:
                     with open(loc_to_try, 'r'):
                         state_file = loc_to_try
                         Domoticz.Log("wideq_state file found in docker location.")
+                        logging.info("wideq_state file found in docker location.")
                 except IOError:
                     try:
                         loc_to_try = self.STATE_FILE_NAME
                         with open(loc_to_try, 'r'):
                             state_file = loc_to_try
                             Domoticz.Log("wideq_state file found in default location.")
+                            logging.info("wideq_state file found in default location.")
                     except IOError:
                         Domoticz.Error(f"wideq_state file not found!")
+                        logging.error(f"wideq_state file not found!")
 
         return state_file
 
@@ -720,11 +758,14 @@ class WideQ:
         try:
             with open(state_file, 'r') as f:
                 Domoticz.Log(f"State data loaded from '{os.path.abspath(state_file)}'")
+                logging.info(f"State data loaded from '{os.path.abspath(state_file)}'")
                 state = json.load(f)
         except IOError:
             Domoticz.Error(f"No state file found (tried: '{os.path.abspath(state_file)}')")
+            logging.error(f"No state file found (tried: '{os.path.abspath(state_file)}')")
         except json.decoder.JSONDecodeError:
             Domoticz.Error("Broken wideq_state.json file?")
+            logging.error("Broken wideq_state.json file?")
 
         return state
 
@@ -774,19 +815,24 @@ class WideQ:
                 break
 
             except TypeError:
-                Domoticz.Log("Could NOT log in. Probably you need to accept new agreement in the mobile app.")
+                Domoticz.Error("Could NOT log in. Probably you need to accept new agreement in the mobile app.")
+                logging.error("Could NOT log in. Probably you need to accept new agreement in the mobile app.")
 
             except wideq.NotLoggedInError or wideq.core.NotLoggedInError:
                 Domoticz.Log("Session expired, refreshing...")
+                logging.info("Session expired, refreshing...")
                 client.refresh()
 
             except UserError as exc:
                 Domoticz.Error(exc.msg)
+                logging.error(exc.msg)
                 raise UserWarning
 
             except CompatibilityError as exc:
                 Domoticz.Error(exc.args[0])
+                logging.error(exc.args[0])
                 Domoticz.Error("You don't have any compatible (LG API V2) devices.")
+                logging.error("You don't have any compatible (LG API V2) devices.")
                 return None
 
         current_state = client.dump()
@@ -798,5 +844,6 @@ class WideQ:
             with open(self.state_file, "w") as f:
                 json.dump(current_state, f)
                 Domoticz.Log(f"State written to state file '{os.path.abspath(self.state_file)}'")
+                logging.info(f"State written to state file '{os.path.abspath(self.state_file)}'")
 
         return lg_device

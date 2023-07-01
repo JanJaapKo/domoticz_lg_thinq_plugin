@@ -454,6 +454,7 @@ class Device(object):
         self.client = client
         self.device = device
         self.model: ModelInfo = client.model_info(device)
+        logging.debug("Created a new device with client "+str(client)+" and device "+str(device)+"resulting in model: "+str(self.model))
 
     def _get_deviceinfo_from_snapshot(self):
         # probably should cache the snapshot somehow
