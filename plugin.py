@@ -54,7 +54,6 @@
 import Domoticz
 import json
 import os.path
-from threading import Thread
 import wideq
 import logging
 
@@ -87,7 +86,6 @@ class BasePlugin:
 
         self.lg_device = None
         self.state = {}
-        self.hbtActive = False
 
     def onStart(self):
         # these variables definitions has to be here (onStart)
@@ -110,8 +108,6 @@ class BasePlugin:
 
         if self.wideq_object.state_file == "":
             return False
-
-        # import web_pdb; web_pdb.set_trace()
 
         try:
             # read AC parameters and Client state
@@ -371,62 +367,56 @@ class BasePlugin:
 
     # every 10 seconds
     def onHeartbeat(self):
-        # Domoticz.Log("onHeartbeat called: "+str(self.heartbeat_counter))
+        Domoticz.Log("onHeartbeat called: "+str(self.heartbeat_counter))
         # logging.info("onHeartbeat called: "+str(self.heartbeat_counter))
         if self.heartbeat_counter == 0:
-            # Domoticz.Log("onHeartbeat %6 called: "+str(self.heartbeat_counter))
-            # import web_pdb; web_pdb.set_trace()
+            Domoticz.Log("onHeartbeat executing: "+str(self.heartbeat_counter))
             # to check if self.lg_device has been already read out from server
             if self.lg_device is not None:
-                if not self.hbtActive:
-                    Thread(target=self.heartbeatThread, args=None)
+
+                try:
+                    self.lg_device_status = self.lg_device.get_status()
+                    
+                    # AC part
+                    if self.DEVICE_TYPE == "type_ac":
+                        self.operation = self.lg_device_status.is_on
+                        if self.operation:
+                            self.operation = 1
+                        else:
+                            self.operation = 0
+                            
+                        self.op_mode = self.lg_device_status.mode.name
+                        self.target_temp = str(self.lg_device_status.temp_cfg_c)
+                        self.room_temp = str(self.lg_device_status.temp_cur_c)
+                        self.wind_strength = self.lg_device_status.fan_speed.name
+                        self.h_step = self.lg_device_status.horz_swing.name
+                        self.v_step = self.lg_device_status.vert_swing.name
+                        # self.power = str(self.lg_device_status.energy_on_current)
+                        
+                    # AWHP part
+                    if self.DEVICE_TYPE == "type_awhp":
+                        self.operation = self.lg_device_status.is_on
+                        if self.operation:
+                            self.operation = 1
+                        else:
+                            self.operation = 0
+                            
+                        self.op_mode = self.lg_device_status.mode.name
+                        self.target_temp = str(self.lg_device_status.temp_cfg_c)
+                        self.hot_water_temp = str(self.lg_device_status.temp_hot_water_cfg_c)
+                        self.in_water_temp = str(self.lg_device_status.in_water_cur_c)
+                        self.out_water_temp = str(self.lg_device_status.out_water_cur_c)
+                        
+                    self.update_domoticz()
+                        
+                except wideq.NotLoggedInError:
+            
+                    # read AC parameters and Client state
+                    self.lg_device = self.wideq_object.operate_device(device_id=self.DEVICE_ID)
                             
         self.heartbeat_counter = self.heartbeat_counter + 1
-        if self.heartbeat_counter > 9:
+        if self.heartbeat_counter > 5:
             self.heartbeat_counter = 0
-
-    def heartbeatThread(self):
-        self.hbtActive = True
-        try:
-            self.lg_device_status = self.lg_device.get_status()
-            
-            # AC part
-            if self.DEVICE_TYPE == "type_ac":
-                self.operation = self.lg_device_status.is_on
-                if self.operation:
-                    self.operation = 1
-                else:
-                    self.operation = 0
-                    
-                self.op_mode = self.lg_device_status.mode.name
-                self.target_temp = str(self.lg_device_status.temp_cfg_c)
-                self.room_temp = str(self.lg_device_status.temp_cur_c)
-                self.wind_strength = self.lg_device_status.fan_speed.name
-                self.h_step = self.lg_device_status.horz_swing.name
-                self.v_step = self.lg_device_status.vert_swing.name
-                # self.power = str(self.lg_device_status.energy_on_current)
-                
-            # AWHP part
-            if self.DEVICE_TYPE == "type_awhp":
-                self.operation = self.lg_device_status.is_on
-                if self.operation:
-                    self.operation = 1
-                else:
-                    self.operation = 0
-                    
-                self.op_mode = self.lg_device_status.mode.name
-                self.target_temp = str(self.lg_device_status.temp_cfg_c)
-                self.hot_water_temp = str(self.lg_device_status.temp_hot_water_cfg_c)
-                self.in_water_temp = str(self.lg_device_status.in_water_cur_c)
-                self.out_water_temp = str(self.lg_device_status.out_water_cur_c)
-                
-            self.update_domoticz()
-                
-        except wideq.NotLoggedInError:
-    
-            # read AC parameters and Client state
-            self.lg_device = self.wideq_object.operate_device(device_id=self.DEVICE_ID)
-        self.hbtActive = False
          
     def update_domoticz(self):
         # import web_pdb; web_pdb.set_trace()
@@ -639,19 +629,20 @@ def onHeartbeat():
     global _plugin
     _plugin.onHeartbeat()
 
-    # Generic helper functions
+# Generic helper functions
 def DumpConfigToLog():
+    Domoticz.Debug("Parameters count: " + str(len(Parameters)))
     for x in Parameters:
         if Parameters[x] != "":
-            Domoticz.Debug( "'" + x + "':'" + str(Parameters[x]) + "'")
+            Domoticz.Debug("Parameter: '" + x + "':'" + str(Parameters[x]) + "'")
+    Configurations = Domoticz.Configuration()
+    Domoticz.Debug("Configuration count: " + str(len(Configurations)))
+    for x in Configurations:
+        if Configurations[x] != "":
+            Domoticz.Debug( "Configuration '" + x + "':'" + str(Configurations[x]) + "'")
     Domoticz.Debug("Device count: " + str(len(Devices)))
     for x in Devices:
         Domoticz.Debug("Device:           " + str(x) + " - " + str(Devices[x]))
-        Domoticz.Debug("Device ID:       '" + str(Devices[x].ID) + "'")
-        Domoticz.Debug("Device Name:     '" + Devices[x].Name + "'")
-        Domoticz.Debug("Device nValue:    " + str(Devices[x].nValue))
-        Domoticz.Debug("Device sValue:   '" + Devices[x].sValue + "'")
-        Domoticz.Debug("Device LastLevel: " + str(Devices[x].LastLevel))
     return
 
 def DumpDictionaryToLog(theDict, Depth=""):

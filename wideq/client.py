@@ -160,7 +160,7 @@ class Client(object):
         classes = util.device_classes()
         if device_info.type in classes:
             return classes[device_info.type](self, device_info)
-        LOGGER.debug(
+        logging.debug(
             "No specific subclass for deviceType %s, using default",
             device_info.type,
         )
@@ -383,7 +383,7 @@ class ModelInfo(object):
         """Look up the friendly enum name for an encoded value."""
         options = self.value(key).options
         if str(int(value)) not in options:
-            LOGGER.warning(
+            logging.warning(
                 "Value `%s` for key `%s` not in options: %s. Values from API: "
                 "%s",
                 str(int(value)),
@@ -493,7 +493,7 @@ class Device(object):
         except json.decoder.JSONDecodeError:
             # Sometimes, the service returns JSON wrapped in an extra
             # pair of curly braces. Try removing them and re-parsing.
-            LOGGER.debug("attempting to fix JSON format")
+            logging.debug("attempting to fix JSON format")
             try:
                 return json.loads(re.sub(r"^\{(.*?)\}$", r"\1", data))
             except json.decoder.JSONDecodeError:
